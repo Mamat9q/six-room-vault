@@ -78,6 +78,7 @@ export const PLAYER = {
   radius: 11,
   speed: 168,
   sneakSpeed: 102,
+  foldSpeed: 54,
   startX: 64,
   startY: 200,
 };
@@ -148,7 +149,7 @@ export const LOOT = [
   { id: 'idol', kind: 'idol', x: 640, y: 374, value: 500 },
 ];
 
-/** Priced tools, bought with loot (keys 1-5). Costs are the whole economy: every tool is a
+/** Priced tools, bought with loot (keys 1-6). Costs are the whole economy: every tool is a
  *  choice between a louder escape now and a bigger score at the end. */
 export const TOOLS = [
   { key: '1', id: 'lockpick', name: 'LOCKPICK', cost: 150, desc: 'Opens a locked door beside you' },
@@ -156,11 +157,14 @@ export const TOOLS = [
   { key: '3', id: 'disguise', name: 'DISGUISE', cost: 300, desc: 'Guards ignore you 10s (beyond 45px)' },
   { key: '4', id: 'smoke', name: 'SMOKE BOMB', cost: 150, desc: 'Vision-proof cloud 5s' },
   { key: '5', id: 'noise', name: 'NOISE MAKER', cost: 100, desc: 'Lures the nearest guard to you' },
+  { key: '6', id: 'decoy', name: 'PAPER DECOY', cost: 200, desc: 'Paper double lures guards to a spot 6s' },
 ];
 export const EMP_SECONDS = 8;
 export const DISGUISE_SECONDS = 10;
 export const SMOKE_SECONDS = 5;
 export const SMOKE_RADIUS = 95;
+export const DECOY_SECONDS = 6;
+export const DECOY_LURE_RANGE = 260;
 export const DISGUISE_MIN_RANGE = 45;
 export const CATCH_RADIUS = 17;
 export const GHOST_BONUS = 500;

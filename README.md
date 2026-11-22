@@ -21,7 +21,9 @@ out. Getting caught ends the run; never being seen pays a $500 ghost bonus.
 - **Multi-stage alarm.** Calm → suspicion (guards investigate) → lockdown at 75 (every door
   seals for 8 seconds and the guards hunt). The meter decays while you stay hidden.
 - **Priced tools, bought with loot.** Lockpick $150, EMP burst $250, disguise $300, smoke bomb
-  $150, noise maker $100 — every purchase trades score against survival.
+  $150, noise maker $100, paper decoy $200 — every purchase trades score against survival.
+  Hold **F to fold flat**: vision cones pass over you while you crawl at a third of walking
+  speed, but you cannot use tools until you stand up again.
 - **Tiered loot.** Coins $50, art and data $150, vault cash $200, the Idol $500. Time left pays
   $10 a second on a clean getaway.
 - **Six rooms, two locked doors.** The Gallery→Vault door needs a lockpick; the Vault→Rooftop
@@ -29,7 +31,8 @@ out. Getting caught ends the run; never being seen pays a $500 ghost bonus.
 
 ## Controls
 
-WASD / arrows move · Shift sneak (slower, harder to spot) · 1–5 buy and use tools ·
+WASD / arrows move · Shift sneak (slower, harder to spot) · F fold flat (cones pass over you,
+but you crawl and can't use tools) · 1–6 buy and use tools ·
 P / Esc pause · R restart after the job ends · M mute · mouse click starts.
 
 ## Play it

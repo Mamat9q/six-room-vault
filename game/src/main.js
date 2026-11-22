@@ -37,8 +37,8 @@ window.__HEIST = {
   reset() {
     world.reset();
   },
-  step(dt, move, sneaking, tools) {
-    return world.step(dt, move, sneaking, tools);
+  step(dt, move, sneaking, tools, folding) {
+    return world.step(dt, move, sneaking, tools, folding);
   },
 };
 
@@ -120,11 +120,11 @@ function runGame() {
       return;
     }
     if (screen !== SCREEN_PLAY) return;
-    // Tool keys 1-5 are bits 4..64 of the action flags; the world takes them as a 5-bit mask.
-    const toolMask = (actions >> 2) & 0x1f;
+    // Tool keys 1-6 are bits 4..128 of the action flags; the world takes them as a 6-bit mask.
+    const toolMask = (actions >> 2) & 0x3f;
     if (toolMask) {
       const before = world.state.loot;
-      const events = world.step(0, { x: 0, y: 0 }, false, toolMask);
+      const events = world.step(0, { x: 0, y: 0 }, false, toolMask, false);
       void events;
       if (world.state.loot < before) audio.tool();
       else audio.denied();
@@ -140,7 +140,7 @@ function runGame() {
       world.step(STEP, { x: 0, y: 0 }, false, 0);
       return;
     }
-    const events = world.step(STEP, input.vector(), input.sneaking(), 0);
+    const events = world.step(STEP, input.vector(), input.sneaking(), 0, input.folding());
     if (events & EVENT_PICKUP) {
       if (world.state.hasIdol && world.state.messageTimer > 3) audio.idol();
       else audio.pickup();

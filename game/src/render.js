@@ -266,26 +266,66 @@ export function createRenderer(canvas, world) {
       ctx.fill();
     }
     ctx.fillStyle = PALETTE.player;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, PLAYER.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = state.disguiseTimer > 0 ? '#ffd166' : PALETTE.playerRing;
-    ctx.lineWidth = 2;
-    if (p.sneaking) ctx.setLineDash([4, 3]);
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, PLAYER.radius + 3, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.strokeStyle = '#0a1226';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
-    ctx.lineTo(p.x + Math.cos(p.angle) * 15, p.y + Math.sin(p.angle) * 15);
-    ctx.stroke();
+    if (p.folded) {
+      // Folded flat: a low ellipse the cones pass over, ring kept so the thief stays readable.
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, 14, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = state.disguiseTimer > 0 ? '#ffd166' : PALETTE.playerRing;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, 17, 9, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, PLAYER.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = state.disguiseTimer > 0 ? '#ffd166' : PALETTE.playerRing;
+      ctx.lineWidth = 2;
+      if (p.sneaking) ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, PLAYER.radius + 3, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = '#0a1226';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + Math.cos(p.angle) * 15, p.y + Math.sin(p.angle) * 15);
+      ctx.stroke();
+    }
     ctx.fillStyle = PALETTE.text;
     ctx.font = '700 9px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('YOU', p.x, p.y - 20);
+    if (p.folded) {
+      ctx.fillStyle = '#5eeaff';
+      ctx.fillText('FLAT', p.x, p.y + 22);
+    }
+  }
+
+  /** The paper decoy: a small white paper double with a pulsing ring, while it lasts. */
+  function drawDecoy(state) {
+    if (state.decoyTimer <= 0) return;
+    const pulse = 0.6 + 0.4 * Math.sin(state.time * 5);
+    ctx.save();
+    ctx.globalAlpha = pulse;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(state.decoyX, state.decoyY, 18, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.translate(state.decoyX, state.decoyY);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillRect(-8, -8, 16, 16);
+    ctx.restore();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('DECOY', state.decoyX, state.decoyY - 24);
   }
 
   function drawHUD(state, best) {
@@ -350,20 +390,21 @@ export function createRenderer(canvas, world) {
     ctx.font = '700 13px system-ui, sans-serif';
     ctx.fillText('BEST ' + best, 815, 20);
     // Tool slots, priced (first word of the name, so every label fits its slot).
-    let tx = 900;
+    // Six slots at w=60, step 63 from x=902: 902 + 6*63 = 1280, an exact fit.
+    let tx = 902;
     ctx.font = '9px system-ui, sans-serif';
     for (const tool of TOOLS) {
       const afford = state.loot >= tool.cost;
       ctx.fillStyle = afford ? '#16233f' : '#0d1526';
-      ctx.fillRect(tx, 8, 72, 40);
+      ctx.fillRect(tx, 8, 60, 40);
       ctx.strokeStyle = afford ? PALETTE.door : '#22375c';
-      ctx.strokeRect(tx + 0.5, 8.5, 72, 40);
+      ctx.strokeRect(tx + 0.5, 8.5, 60, 40);
       ctx.fillStyle = afford ? PALETTE.text : PALETTE.muted;
       ctx.textAlign = 'center';
-      ctx.fillText(`[${tool.key}] ${tool.name.split(' ')[0]}`, tx + 36, 22);
+      ctx.fillText(`[${tool.key}] ${tool.name.split(' ')[0]}`, tx + 30, 22);
       ctx.fillStyle = afford ? PALETTE.loot : PALETTE.muted;
-      ctx.fillText('$' + tool.cost, tx + 36, 38);
-      tx += 76;
+      ctx.fillText('$' + tool.cost, tx + 30, 38);
+      tx += 63;
     }
     // Timed effects, under the alarm meter (never under the tool slots).
     let ex = 330;
@@ -382,6 +423,16 @@ export function createRenderer(canvas, world) {
     if (state.smokeTimer > 0) {
       ctx.fillStyle = '#c8d2e1';
       ctx.fillText(`SMOKE ${Math.ceil(state.smokeTimer)}s`, ex, 54);
+      ex += 70;
+    }
+    if (state.decoyTimer > 0) {
+      ctx.fillStyle = '#eaf6ff';
+      ctx.fillText(`DECOY ${Math.ceil(state.decoyTimer)}s`, ex, 54);
+      ex += 70;
+    }
+    if (state.player.folded) {
+      ctx.fillStyle = '#5eeaff';
+      ctx.fillText('FLAT', ex, 54);
     }
     // Transient message, centred over the map.
     if (state.messageTimer > 0 && state.message) {
@@ -421,6 +472,7 @@ export function createRenderer(canvas, world) {
     drawWallsAndDoors(state);
     drawLoot(state);
     drawGuardsAndCameras(state);
+    drawDecoy(state);
     drawPlayer(state);
     drawHUD(state, best);
     if (screen === SCREEN_TITLE) {
@@ -429,8 +481,8 @@ export function createRenderer(canvas, world) {
         [
           'A six-room blueprint heist: Lobby, Gallery, Server Room, Corridor, Vault, Rooftop.',
           'Dodge 3 guard types and sweeping cameras — the alarm meter decides everything.',
-          'Buy tools with loot: [1] Lockpick $150  [2] EMP $250  [3] Disguise $300  [4] Smoke $150  [5] Noise $100',
-          'WASD / arrows move · Shift sneak · P pause · R restart after the job ends',
+          'Buy tools with loot: [1] Lockpick $150  [2] EMP $250  [3] Disguise $300  [4] Smoke $150  [5] Noise $100  [6] Decoy $200',
+          'WASD / arrows move · Shift sneak · F fold flat — cones pass over you, but you crawl and can\'t use tools · P pause · R restart after the job ends',
           'Steal the IDOL in the Vault, then reach the helipad. Never get seen: +$500 ghost bonus.',
           '',
           'Press SPACE or click to start',

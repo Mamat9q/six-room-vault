@@ -4,7 +4,7 @@
 // a point-march along a ray and movement is circle-vs-rectangle with axis-separated sliding.
 
 import {
-  ALARM, CAMERAS, CATCH_RADIUS, DISGUISE_MIN_RANGE, DISGUISE_SECONDS, DOORS, DOOR_W,
+  ALARM, CAMERAS, CATCH_RADIUS, DECOY_LURE_RANGE, DECOY_SECONDS, DISGUISE_MIN_RANGE, DISGUISE_SECONDS, DOORS, DOOR_W,
   EMP_SECONDS, GHOST_BONUS, GUARDS, HELIPAD, LOOT, MAP, OBSTACLES, PLAYER, ROOM_H,
   ROOM_W, SMOKE_RADIUS, SMOKE_SECONDS, TIME_BONUS_PER_SECOND, TIMER_SECONDS, TOOLS, WALL,
 } from './config.js';
@@ -147,7 +147,10 @@ export function createWorld() {
     smokeTimer: 0,
     smokeX: 0,
     smokeY: 0,
-    player: { x: PLAYER.startX, y: PLAYER.startY, angle: 0, sneaking: false },
+    decoyTimer: 0,
+    decoyX: 0,
+    decoyY: 0,
+    player: { x: PLAYER.startX, y: PLAYER.startY, angle: 0, sneaking: false, folded: false },
     guards: [],
     cameras: [],
     lootItems: [],
@@ -171,7 +174,10 @@ export function createWorld() {
     state.empTimer = 0;
     state.disguiseTimer = 0;
     state.smokeTimer = 0;
-    state.player = { x: PLAYER.startX, y: PLAYER.startY, angle: 0, sneaking: false };
+    state.decoyTimer = 0;
+    state.decoyX = 0;
+    state.decoyY = 0;
+    state.player = { x: PLAYER.startX, y: PLAYER.startY, angle: 0, sneaking: false, folded: false };
     state.guards = GUARDS.map((g) => ({
       ...g,
       x: g.waypoints ? g.waypoints[0][0] : g.x,
@@ -220,9 +226,11 @@ export function createWorld() {
   }
 
   /** Does this viewer see the thief right now? Distance, cone angle, a clear line, and the
-   *  thief not hidden by smoke or (at range) by a disguise. */
+   *  thief not hidden by smoke or (at range) by a disguise. A thief folded flat is never
+   *  seen — cones and cameras pass right over them (a guard walking into them still catches). */
   function seesPlayer(viewer, range, halfAngle) {
     const p = state.player;
+    if (p.folded) return false;
     const dx = p.x - viewer.x;
     const dy = p.y - viewer.y;
     const dist = Math.hypot(dx, dy);
@@ -261,6 +269,11 @@ export function createWorld() {
   function useTool(index) {
     const tool = TOOLS[index];
     if (!tool) return 0;
+    if (state.player.folded) {
+      state.message = 'Folded flat — stand up to use tools';
+      state.messageTimer = 2.2;
+      return EVENT_DENIED;
+    }
     if (state.loot < tool.cost) {
       state.message = `Need $${tool.cost} for ${tool.name} — you have $${state.loot}`;
       state.messageTimer = 2.2;
@@ -314,12 +327,27 @@ export function createWorld() {
         best.waitTimer = 0;
       }
       state.message = 'NOISE MAKER — a guard comes to look';
+    } else if (tool.id === 'decoy') {
+      // A paper double of the thief, dropped where they stand: every guard close
+      // enough walks over to look at it for the full 6 seconds.
+      state.decoyTimer = DECOY_SECONDS;
+      state.decoyX = state.player.x;
+      state.decoyY = state.player.y;
+      for (const g of state.guards) {
+        if (Math.hypot(g.x - state.decoyX, g.y - state.decoyY) < DECOY_LURE_RANGE) {
+          g.mode = 'investigate';
+          g.lastSeenX = state.decoyX;
+          g.lastSeenY = state.decoyY;
+          g.waitTimer = 0;
+        }
+      }
+      state.message = 'PAPER DECOY — the guards go look';
     }
     state.messageTimer = 2;
     return EVENT_TOOL;
   }
 
-  function step(dt, move, sneaking, toolActions) {
+  function step(dt, move, sneaking, toolActions, folding = false) {
     if (state.over) return 0;
     let events = 0;
     state.time += dt;
@@ -334,6 +362,7 @@ export function createWorld() {
     if (state.empTimer > 0) state.empTimer -= dt;
     if (state.disguiseTimer > 0) state.disguiseTimer -= dt;
     if (state.smokeTimer > 0) state.smokeTimer -= dt;
+    if (state.decoyTimer > 0) state.decoyTimer -= dt;
     if (state.lockdownTimer > 0) {
       state.lockdownTimer -= dt;
       if (state.lockdownTimer <= 0) {
@@ -352,18 +381,20 @@ export function createWorld() {
       }
     }
 
-    // Tools (keys 1-5) are one-shot actions from the input queue.
+    // Tools (keys 1-6) are one-shot actions from the input queue.
     if (toolActions) {
-      for (let i = 0; i < 5; i += 1) {
+      for (let i = 0; i < 6; i += 1) {
         if (toolActions & (1 << i)) events |= useTool(i);
       }
     }
 
-    // The thief moves (sneak is slower but shrinks the guards' effective range).
+    // The thief moves (sneak is slower but shrinks the guards' effective range; folded
+    // flat is a crawl, but cones pass over them).
     const solids = blockers();
-    const speed = sneaking ? PLAYER.sneakSpeed : PLAYER.speed;
+    const speed = folding ? PLAYER.foldSpeed : sneaking ? PLAYER.sneakSpeed : PLAYER.speed;
     const p = state.player;
     p.sneaking = sneaking;
+    p.folded = folding;
     if (move.x !== 0 || move.y !== 0) {
       p.angle = Math.atan2(move.y, move.x);
       moveCircle(p, move.x * speed * dt, move.y * speed * dt, PLAYER.radius, solids);
@@ -446,7 +477,12 @@ export function createWorld() {
         if (Math.hypot(target.x - g.x, target.y - g.y) < 10) {
           g.waitTimer += dt;
           g.angle += dt * 0.9; // look around while checking the spot
-          if (g.waitTimer > ALARM.investigateSeconds) {
+          // A live paper decoy holds their attention: keep waiting at the decoy spot
+          // instead of giving up and going back to patrol.
+          if (state.decoyTimer > 0
+            && Math.hypot(g.lastSeenX - state.decoyX, g.lastSeenY - state.decoyY) < 10) {
+            g.waitTimer = 0;
+          } else if (g.waitTimer > ALARM.investigateSeconds) {
             g.mode = 'patrol';
             g.waitTimer = 0;
           }
