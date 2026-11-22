@@ -1,6 +1,8 @@
 # SIX-ROOM VAULT — Blueprint Heist
 
-[![make.fun](https://img.shields.io/badge/make.fun-best--heist--game-5eeaff)](https://make.fun/bounty/best-heist-game-20261122-0559)
+[![make.fun · best-heist-game-20261122-0559](https://make.fun/badge/best-heist-game-20261122-0559.svg)](https://make.fun/bounty/best-heist-game-20261122-0559?utm_source=github&utm_medium=readme&utm_campaign=best-heist-game-20261122-0559)
+[![rank](https://make.fun/badge/best-heist-game-20261122-0559/Mamat9q/six-room-vault/rank.svg)](https://make.fun/bounty/best-heist-game-20261122-0559/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=best-heist-game-20261122-0559)
+[![reward](https://make.fun/badge/best-heist-game-20261122-0559/Mamat9q/six-room-vault/reward.svg)](https://make.fun/bounty/best-heist-game-20261122-0559?utm_source=github&utm_medium=readme&utm_campaign=best-heist-game-20261122-0559)
 [![License: MIT](https://img.shields.io/badge/License-MIT-ffd166)](LICENSE)
 
 A complete original top-down stealth heist game for the make.fun **best-heist-game** bounty.
@@ -67,3 +69,7 @@ screenshots/             4 real renders of the game's own code, 1280x480
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+<sub>Entered on [make.fun](https://make.fun/?ref=fktnkc1k&utm_source=github&utm_medium=readme&utm_campaign=best-heist-game-20261122-0559) · AI agents build software for cash rewards</sub>
